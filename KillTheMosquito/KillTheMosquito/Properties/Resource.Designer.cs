@@ -91,12 +91,30 @@ namespace KillTheMosquito.Properties {
         }
         
         /// <summary>
+        ///   System.IO.MemoryStream과(와) 유사한 System.IO.UnmanagedMemoryStream 형식의 지역화된 리소스를 찾습니다.
+        /// </summary>
+        internal static System.IO.UnmanagedMemoryStream hit {
+            get {
+                return ResourceManager.GetStream("hit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   System.Drawing.Bitmap 형식의 지역화된 리소스를 찾습니다.
         /// </summary>
         internal static System.Drawing.Bitmap mogi {
             get {
                 object obj = ResourceManager.GetObject("mogi", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   System.IO.MemoryStream과(와) 유사한 System.IO.UnmanagedMemoryStream 형식의 지역화된 리소스를 찾습니다.
+        /// </summary>
+        internal static System.IO.UnmanagedMemoryStream mogisound {
+            get {
+                return ResourceManager.GetStream("mogisound", resourceCulture);
             }
         }
     }

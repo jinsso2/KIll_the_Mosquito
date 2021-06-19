@@ -22,11 +22,7 @@ namespace KillTheMosquito
         // 설정들이 중간에 변경되지 않도록 상수 처리
 
         // 모기
-        const int MOGI_NUM = 5;     // 모기 최대 마릿수
-
-        // 모기 속성
-        const int MOGI_MAXSPEED = 60;  // 모기 최대 스피드
-
+        const int MOGI_NUM = 8;     // 모기 최대 마릿수
 
         // 모기 구조체 필요한 것? 생사여부, 위치 좌표, 속도, 방향
         // 모기(MOGI) 구조체 정의
@@ -51,13 +47,18 @@ namespace KillTheMosquito
         int fY = 600;
 
         // 점수
-        int score = 0;
-        static int record_score = 0;    // 최종 점수
+        double score = 0;   // 현재 점수
+        static long record_score = 0;    // 최종 점수
 
+        // 목숨
+        float life = 10;
+
+        string gameoverstr = "게임 오버";
+        string newRecord = "최고기록!!";
 
         // 사운드
-        SoundPlayer Hit;    // 타격음
-
+        SoundPlayer hit, mogisnd;    // 타격음
+        
         // 랜덤 값
         Random random = new Random();
 
@@ -96,7 +97,11 @@ namespace KillTheMosquito
             hMogi = Properties.Resource.mogi;               // 모기 리소스 등록
             hGameover = Properties.Resource.gameover;       // 게임오버 배경 리소스 등록
             hFlapper = Properties.Resource.flapper;         // 파리채 리소스 등록
-            
+
+            // 효과음 리소스 등록
+            hit = new SoundPlayer(Properties.Resource.hit);
+            mogisnd = new SoundPlayer(Properties.Resource.mogisound);
+
             StartGame();
         }
 
@@ -105,22 +110,35 @@ namespace KillTheMosquito
             // 게임 시작 시 초기화
             for(int  i = 0; i < MOGI_NUM; i++)
             {
-                mogi[i].exist = false;
+                mogi[i].exist = false;  // 모기 존재 여부 초기화
             }
 
-            fY = 600;
-            score = 0;
-            timer1.Start();
-        }
+            // 배경음악 실행
+            mogisnd.Stop();
+            mciSendString("open \"" + "../../../resource/background.mp3" + "\" type mpegvideo alias MediaFile", null, 0, IntPtr.Zero);
+            mciSendString("play MediaFile REPEAT", null, 0, IntPtr.Zero);
 
-      
-      
-      
+            fY = 600;   // 플레이어 위치 초기화
+            score = 0;  // 점수 초기화
+            life = 10;  // 목숨 초기화
+            timer1.Start(); // 타이머 시작
+        }
+     
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
             if(hArea != null)
             {
-                e.Graphics.DrawImage(hArea, 0, 0);
+                e.Graphics.DrawImage(hArea, 0, 0);  // 이미지 영역 그려주기
+            }
+        }
+
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Return:   // 엔터키가 입력되었다면
+                    StartGame();    // 게임시작 함수 실행
+                    break;  // 조건문 종료
             }
         }
 
@@ -133,7 +151,7 @@ namespace KillTheMosquito
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            MOGI localMogi;
+            MOGI localMogi; // 모기 구조체 선언
 
             Graphics g = Graphics.FromImage(hArea); // 그래픽 객체 얻어오기
             g.DrawImage(hBackground, 0, 0); // 배경 그리기
@@ -169,7 +187,29 @@ namespace KillTheMosquito
                         mogi[i].direction = -1; // 방향 설정
                     }
                     mogi[i].y = 200;    // 높이
-                    mogi[i].speed = random.Next(60) + 3; // 랜덤 속도
+                    mogi[i].speed = random.Next(60) + 2; // 랜덤 속도
+                    mogi[i].exist = true;   // 존재한다
+                }
+            }
+
+            if (random.Next(15) == 0)
+            {
+                for (i = 0; i < MOGI_NUM && mogi[i].exist == true; i++) {; } // i값 설정
+
+                if (i != MOGI_NUM)      // i가 최대 모기 수와 같지 않으면
+                {
+                    if (random.Next(2) == 1)
+                    {
+                        mogi[i].x = mW;     // 출현 위치
+                        mogi[i].direction = 1;  // 방향 설정
+                    }
+                    else
+                    {
+                        mogi[i].x = ClientSize.Width - mW / 2; // 출현 위치
+                        mogi[i].direction = -1; // 방향 설정
+                    }
+                    mogi[i].y = 500;    // 높이
+                    mogi[i].speed = random.Next(50) + 10; // 랜덤 속도
                     mogi[i].exist = true;   // 존재한다
                 }
             }
@@ -184,7 +224,9 @@ namespace KillTheMosquito
 
                 if(mogi[j].x < 0 || mogi[j].x > ClientSize.Width)   // 모기 위치가 0보다 작거나 1200보다 크면
                 {
+                    mogisnd.Play();
                     mogi[j].exist = false;  // 없앰
+                    life--; // 목숨 하나 감소
                 }
                 else
                 {
@@ -192,37 +234,73 @@ namespace KillTheMosquito
                 }
 
                 // 충돌 체크
-                Rectangle mogirt, flapperrt, irt;
+                Rectangle mogirt, flapperrt, irt;   // 사각형 구조체 선언
 
                 // 파리채와 모기 충돌 체크    
-                // 파리채 사각형 설정
-                flapperrt = new Rectangle(fX - fW / 2, fY, fW, fH);
+                
+                flapperrt = new Rectangle(fX-20, fY - fW / 2, fW-150, fH); // 파리채 사각형 설정
 
                 for (int k = 0; k < MOGI_NUM; k++)
                 {
                     if (mogi[k].exist == false) continue; // 모기 없으면 건너뜀
-                                                          // 모기가 있으면 모기 사각형 찾기
-                    mogirt = new Rectangle(mogi[k].x - mW / 2, mogi[k].y, mW, mH);
+                    // 모기가 있으면 모기 사각형 찾기
 
-                    irt = Rectangle.Intersect(flapperrt, mogirt);
-                    if (irt.IsEmpty == false)
+                    localMogi = mogi[k];    // 모기 개수 연산
+                    int w = mW; // 모기 너비 저장
+                    int h = mH; // 모기 높이 저장
+                    mogirt = new Rectangle(localMogi.x - w / 2, localMogi.y, w, h); // 모기 사각형 설정
+
+                    // 사각형 충돌판정 설정
+                    irt = Rectangle.Intersect(flapperrt, mogirt);   // 사각형 교차 설정
+                    if (irt.IsEmpty == false)   // 교차한다면
                     {
-                        mogi[k].exist = false;
-                        score = score + 100;
-                        if (record_score < score)
+                        mogi[k].exist = false;  // 모기 삭제
+                        hit.Play();
+                        score = score + 100;    // 점수 추가
+                        if (record_score < score)   // 최고점수 갱신
                         {
-                            record_score = record_score + 100;
+                            record_score = record_score + 100;  // 점수는 모기 마리 당 100씩 증가
                         }
+
+                        
                     }
                 }
+
+                // UI부분
+                Font font1 = new System.Drawing.Font(new FontFamily("메이플스토리"), 20, FontStyle.Bold); // 폰트 설정
+
+                // 문자 그려주기
+                g.DrawString("점수 : " + score.ToString(), font1, Brushes.DarkBlue, new PointF(10, 20));  // 점수 UI
+                g.DrawString("신기록 : " + record_score.ToString(), font1, Brushes.DarkBlue, new PointF(960, 20)); // 신기록 UI
+                g.DrawString("목숨 : " + life.ToString(), font1, Brushes.DarkBlue, new PointF(550, 750)); // 목숨 UI  
+                if(Math.Equals(score, record_score))
+                {
+                    g.DrawString(newRecord.Substring(0, 5) + record_score.ToString(), font1, Brushes.DarkBlue, new PointF(860, 20)); // 신기록 UI
+                }
+                // 게임오버 
+                if (life == 0)  // 목숨이 0이되면
+                {
+                    mciSendString("stop MediaFile", null, 0, IntPtr.Zero);  // 배경음악 정지
+                    mogisnd.PlayLooping();
+                    g.Clear(Color.White);   // 화면을 지우고
+                    GameOver(); // 게임오버 함수 실행
+                    timer1.Stop();  // 타이머 멈춤
+                }
+                
             }
             Invalidate();
         }
       
-        private void StopGame()
+        // 게임오버 화면 출력
+        private void GameOver()
         {
+            Graphics g = Graphics.FromImage(hArea); // 그래픽 객체 받아오기
+            g.DrawImage(hGameover, 0, 0);   // 게임오버 이미지 불러오기
 
-
+            Font font = new System.Drawing.Font(new FontFamily("메이플스토리"),50,FontStyle.Bold);    // 폰트 설정
+            g.DrawString(gameoverstr, font, Brushes.White, new PointF(300, 150));   // 게임오버 UI
+            g.DrawString("모기에게 뜯겼습니다..", font, Brushes.White, new PointF(300, 500));    // 게임오버 사유 설명 UI
+            g.DrawString("점수 : " + score.ToString(), font, Brushes.DarkBlue, new PointF(300, 300)); // 획득한 점수 표시 UI
         }
 
     }

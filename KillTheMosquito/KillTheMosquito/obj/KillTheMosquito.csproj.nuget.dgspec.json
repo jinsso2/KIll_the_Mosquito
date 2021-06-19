@@ -14,7 +14,8 @@
         "outputPath": "C:\\Users\\wlstj\\Documents\\GitHub\\KIll_the_Mosquito\\KillTheMosquito\\KillTheMosquito\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
           "C:\\Users\\wlstj\\AppData\\Roaming\\NuGet\\NuGet.Config",
