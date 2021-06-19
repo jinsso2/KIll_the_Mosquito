@@ -66,6 +66,7 @@ namespace KillTheMosquito
         Bitmap hFlapper, hMogi, hBackground, hGameover;
         Bitmap hArea = new Bitmap(1200, 800);
 
+        
 
         //키 이벤트를 처리하기 위해 필요함
         [DllImport("User32.dll")]
@@ -273,10 +274,15 @@ namespace KillTheMosquito
                 g.DrawString("점수 : " + score.ToString(), font1, Brushes.DarkBlue, new PointF(10, 20));  // 점수 UI
                 g.DrawString("신기록 : " + record_score.ToString(), font1, Brushes.DarkBlue, new PointF(960, 20)); // 신기록 UI
                 g.DrawString("목숨 : " + life.ToString(), font1, Brushes.DarkBlue, new PointF(550, 750)); // 목숨 UI  
-                if(Math.Equals(score, record_score))
+                
+                if(score >= 100)
                 {
-                    g.DrawString(newRecord.Substring(0, 5) + record_score.ToString(), font1, Brushes.DarkBlue, new PointF(860, 20)); // 신기록 UI
+                    if (score == record_score)
+                    {
+                        g.DrawString(newRecord.Substring(0, 5), font1, Brushes.DarkBlue, new PointF(830, 20)); // 신기록 UI
+                    }
                 }
+                
                 // 게임오버 
                 if (life == 0)  // 목숨이 0이되면
                 {
@@ -300,8 +306,8 @@ namespace KillTheMosquito
             Font font = new System.Drawing.Font(new FontFamily("메이플스토리"),50,FontStyle.Bold);    // 폰트 설정
             g.DrawString(gameoverstr, font, Brushes.White, new PointF(300, 150));   // 게임오버 UI
             g.DrawString("모기에게 뜯겼습니다..", font, Brushes.White, new PointF(300, 500));    // 게임오버 사유 설명 UI
-            g.DrawString("점수 : " + score.ToString(), font, Brushes.DarkBlue, new PointF(300, 300)); // 획득한 점수 표시 UI
+            g.DrawString("점수 : " + score.ToString(), font, Brushes.DarkBlue, new PointF(300, 350)); // 획득한 점수 표시 UI
+            g.DrawString("다른 유저의 최고점수 : " + Math.Max(score, record_score).ToString(), font, Brushes.DarkBlue, new PointF(300, 250));   // 최고 점수 표시
         }
-
     }
 }
