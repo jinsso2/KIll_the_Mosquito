@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Media;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace KillTheMosquito
 {
@@ -34,7 +35,6 @@ namespace KillTheMosquito
             public int direction; // 모기 방향
         } MOGI[] mogi = new MOGI[MOGI_NUM]; // 모기 여러마리 출현 가능
 
-
         // 모기, 파리채 속성
         // 너비, 높이
         const int fW = 200;  // 파리채 너비
@@ -53,7 +53,8 @@ namespace KillTheMosquito
         // 목숨
         float life = 10;
 
-        string gameoverstr = "게임 오버";
+        // 게임 결과 관련 문자열
+        string gameoverstr = "게임 오버";   
         string newRecord = "최고기록!!";
 
         // 사운드
@@ -64,9 +65,7 @@ namespace KillTheMosquito
 
         // 게임 전체 영역에 대한 Bitmap 객체
         Bitmap hFlapper, hMogi, hBackground, hGameover;
-        Bitmap hArea = new Bitmap(1200, 800);
-
-        
+        Bitmap hArea = new Bitmap(1200, 800);    
 
         //키 이벤트를 처리하기 위해 필요함
         [DllImport("User32.dll")]
@@ -127,10 +126,14 @@ namespace KillTheMosquito
      
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
-            if(hArea != null)
+            try
             {
-                e.Graphics.DrawImage(hArea, 0, 0);  // 이미지 영역 그려주기
+                if (hArea != null)
+                {
+                    e.Graphics.DrawImage(hArea, 0, 0);  // 이미지 영역 그려주기
+                }
             }
+            catch(Exception exception) { }
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
@@ -147,8 +150,6 @@ namespace KillTheMosquito
         {
             // 배경색으로 지우지 않고, 아무런 기능도 하지 않도록 깜빡임 현상 제거
         }
-
-        
 
         private void timer1_Tick(object sender, EventArgs e)
         {
@@ -261,9 +262,7 @@ namespace KillTheMosquito
                         if (record_score < score)   // 최고점수 갱신
                         {
                             record_score = record_score + 100;  // 점수는 모기 마리 당 100씩 증가
-                        }
-
-                        
+                        }     
                     }
                 }
 
@@ -291,8 +290,32 @@ namespace KillTheMosquito
                     g.Clear(Color.White);   // 화면을 지우고
                     GameOver(); // 게임오버 함수 실행
                     timer1.Stop();  // 타이머 멈춤
-                }
-                
+                     
+                    try
+                    {
+                        // 신기록 달성 시 저장
+                        if (score == record_score)
+                        {
+                            using (StreamWriter sw = new StreamWriter("../../score.txt"))   // score.txt로 저장
+                            {
+                                sw.Write(record_score.ToString());  // 최고 점수를 txt로 저장
+                                MessageBox.Show("신기록을 달성하여 기록 되었습니다");
+                            }
+                        }
+                    }
+                    // 예외 처리
+                    catch(Exception exception)
+                    {
+                        string errorMsg = "예외 발생";
+                        errorMsg = errorMsg + "\n" + "exception type: " + exception.GetType() + "\n" + exception.Message + "\n스택트레이스: " + exception.StackTrace;
+                        using (FileStream fs = new FileStream("../../error.log", FileMode.Create))
+                        {
+                            BinaryFormatter bf = new BinaryFormatter();
+                            bf.Serialize(fs, errorMsg);                         
+                            MessageBox.Show("exception이 저장되었습니다.");
+                        }
+                    }
+                }      
             }
             Invalidate();
         }
@@ -302,12 +325,19 @@ namespace KillTheMosquito
         {
             Graphics g = Graphics.FromImage(hArea); // 그래픽 객체 받아오기
             g.DrawImage(hGameover, 0, 0);   // 게임오버 이미지 불러오기
-
+            
+            // 저장된 최대 점수를 불러옴
+            string otherScore = "";     // 다른 점수를 저장할 문자열 선언
+            using (StreamReader sr = new StreamReader("../../score.txt"))   // 지정한 txt파일을 불러옴
+            {
+                otherScore = sr.ReadToEnd();    // 선언한 문자열에 불러온 txt파일을 읽어와 저장
+            }
             Font font = new System.Drawing.Font(new FontFamily("메이플스토리"),50,FontStyle.Bold);    // 폰트 설정
             g.DrawString(gameoverstr, font, Brushes.White, new PointF(300, 150));   // 게임오버 UI
             g.DrawString("모기에게 뜯겼습니다..", font, Brushes.White, new PointF(300, 500));    // 게임오버 사유 설명 UI
             g.DrawString("점수 : " + score.ToString(), font, Brushes.DarkBlue, new PointF(300, 350)); // 획득한 점수 표시 UI
-            g.DrawString("다른 유저의 최고점수 : " + Math.Max(score, record_score).ToString(), font, Brushes.DarkBlue, new PointF(300, 250));   // 최고 점수 표시
+            g.DrawString("최고점수 : " + Math.Max(score, record_score) as string, font, Brushes.DarkBlue, new PointF(300, 250));   // 최고 점수 표시
+            g.DrawString("다른 유저의 점수 : " + otherScore, font, Brushes.DarkBlue, new PointF(200, 650));    // 저장된 다른 최고 점수를 불러와 출력
         }
     }
 }
